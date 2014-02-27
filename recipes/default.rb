@@ -1,12 +1,12 @@
 include_recipe 'java'
 include_recipe 'nginx-zoo::default'
 
-group node["cojure_web"]["group"] do
+group node["clojure_web"]["group"] do
   action :create
 end
 
 user node["clojure_web"]["user"] do
-  gid node["cojure_web"]["group"]
+  gid node["clojure_web"]["group"]
 end
 
 directory "/opt/#{node["clojure_web"]["app_name"]}" do
@@ -23,14 +23,23 @@ remote_file "/opt/#{node["clojure_web"]["app_name"]}/#{node["clojure_web"]["app_
   source node["clojure_web"]["artefact"]
 end
 
+remote_file "/opt/#{node["clojure_web"]["app_name"]}/#{node["clojure_web"]["app_name"]}_#{node["clojure_web"]["app_version"]}.edn" do
+  action :create
+  owner node["clojure_web"]["user"]
+  mode "0644"
+  source node["clojure_web"]["conf"]
+end
+
 template "/etc/init/#{node["clojure_web"]["app_name"]}.conf" do
-  source "kafka.upstart.conf.erb"
+  source "clojure_web.upstart.conf.erb"
   owner "root"
   group "root"
   variables ({
-    name: node["clojure_web"]["app_name"],
+    name: "#{node["clojure_web"]["app_name"]}/#{node["clojure_web"]["app_name"]}_#{node["clojure_web"]["app_version"]}",
     user: node["clojure_web"]["user"],
-    group: node["clojure_web"]["group"]
+    group: node["clojure_web"]["group"],
+    max_heap: node["clojure_web"]["max_heap"],
+    init_heap: node["clojure_web"]["init_heap"]
   })
   mode "0644"
 end
@@ -42,11 +51,11 @@ service node["clojure_web"]["app_name"] do
 end
 
 template "/usr/local/nginx/conf/sites-available/#{node['clojure_web']['app_name']}.conf" do
-  source "default.conf.erb"
+  source "site.conf.erb"
   owner node['nginx']['user']
   group node['nginx']['group']
   mode "0644"
-  variables({app_name: node['clojure_web']['app_name']})
+  variables({name: node['clojure_web']['app_name']})
   action :create
 end
 
@@ -57,6 +66,6 @@ unless ::File.exist?("/usr/local/nginx/conf/sites-enabled/#{node['clojure_web'][
     command "ln -s #{src} #{dest}"
 
     notifies :restart, "service[nginx]"
-    notifies :start, "service[#{node['app_name']['name']}]"
+    notifies :start, "service[#{node['clojure_web']['app_name']}]"
   end
 end

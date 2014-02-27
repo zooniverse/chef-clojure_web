@@ -1,0 +1,14 @@
+description "An Uberjarred web application"
+
+start on [2345]
+stop on [!12345]
+
+respawn
+respawn limit 2 5
+
+kill timeout 300
+
+setuid <%= @user %>
+setgid <%= @group %>
+
+exec java -Xms<%= @init_heap %> -Xmx<%= @max_heap %> -jar /opt/<%= @name %>.jar /opt/<%= @name %>.edn
