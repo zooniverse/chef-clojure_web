@@ -12,3 +12,12 @@ setuid <%= @user %>
 setgid <%= @group %>
 
 exec java -Xms<%= @init_heap %> -Xmx<%= @max_heap %> -jar /opt/<%= @name %>.jar /opt/<%= @name %>.edn
+
+post-start script
+  PID=`status <%= @name %> | egrep -oi '([0-9]+)$' | head -n1`
+  echo $PID > /opt/<%= @name %>/<%= @name %>.pid
+end script
+
+post-stop script
+  rm -f /opt/<%= @name %>/<%= @name %>.pid
+end script
